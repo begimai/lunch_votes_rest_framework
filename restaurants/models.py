@@ -1,6 +1,32 @@
-from pygments.lexers import get_all_lexers
-from pygments.styles import get_all_styles
+from datetime import timezone
 
-LEXERS = [item for item in get_all_lexers() if item[1]]
-LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
-STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
+from django.db import models
+
+
+class Restaurant(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=100, blank=True, default='')
+    description = models.TextField()
+    address = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['name']
+
+
+class Dish(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    price = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['name']
+
+
+class Menu(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    day = models.DateField()
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['day']

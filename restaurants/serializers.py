@@ -1,31 +1,67 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from restaurants.models import Restaurant, Dish, Menu
+from restaurants.models import Restaurant, Menu, Vote
 
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = User
-        fields = ['url', 'id', 'username']
+class RestaurantSerializer(serializers.ModelSerializer):
+    token = serializers.CharField(read_only=True)
 
-
-class RestaurantSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Restaurant
-        fields = ['url', 'id', 'name', 'description', 'address', 'phone_number', 'created']
+        fields = [
+            'id',
+            'title',
+            'token',
+        ]
 
 
-class DishSerializer(serializers.HyperlinkedModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, style={
+        'input_type': 'password',
+    })
+
     class Meta:
-        model = Dish
-        fields = ['url', 'id', 'name', 'description', 'price']
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'password',
+        ]
 
 
-class MenuSerializer(serializers.HyperlinkedModelSerializer):
-    # restaurant = serializers.HyperlinkedRelatedField(many=True, view_name='snippet-detail', read_only=True)
-    # dish = serializers.HyperlinkedRelatedField(many=True, view_name='snippet-detail', read_only=True)
+class MenuSerializer(serializers.ModelSerializer):
+    votes_for = serializers.IntegerField(read_only=True)
+    votes_against = serializers.IntegerField(read_only=True)
+    restaurant = RestaurantSerializer(read_only=True)
 
     class Meta:
         model = Menu
-        fields = ['url', 'id', 'day', 'restaurant', 'dish']
+        fields = [
+            'id',
+            'title',
+            'date',
+            'restaurant',
+            'votes_for',
+            'votes_against',
+            'dishes',
+        ]
+
+
+class VoteSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    menu = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Vote
+        fields = [
+            'id',
+            'user',
+            'menu',
+            'action',
+        ]
+
+    def create(self, validated_data):
+        Vote.objects.filter(user=validated_data['user'], menu=validated_data['menu']).delete()
+        return super(VoteSerializer, self).create(validated_data)

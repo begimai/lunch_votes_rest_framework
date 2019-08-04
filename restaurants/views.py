@@ -1,80 +1,67 @@
-from rest_framework import viewsets, renderers
-from rest_framework.decorators import api_view, action
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q, F
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
-from django.contrib.auth.models import User
+from rest_framework.viewsets import ModelViewSet
+from rest_framework_extensions.mixins import NestedViewSetMixin
 
-from restaurants.models import Restaurant, Dish, Menu
-from restaurants.serializers import UserSerializer, RestaurantSerializer, DishSerializer, MenuSerializer
+from restaurants.filters import MenuFilterSet
+from restaurants.models import Restaurant, Menu, Vote
+from restaurants.permissions import IsRestaurantOrReadyOnly
+from restaurants.serializers import RestaurantSerializer, MenuSerializer, VoteSerializer, UserSerializer
 
-
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    This viewset automatically provides `list` and `detail` actions.
-    """
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+User = get_user_model()
 
 
-class RestaurantViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-
-    Additionally we also provide an extra `highlight` action.
-    """
+class RestaurantViewSet(ModelViewSet):
+    model = Restaurant
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-
-    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
-    def highlight(self, request, *args, **kwargs):
-        restaurant = self.get_object()
-        return Response(restaurant.highlighted)
-
-    def perform_create(self, serializer):
-        serializer.save()
+    permission_classes = [IsAdminUser]
 
 
-class DishViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-
-    Additionally we also provide an extra `highlight` action.
-    """
-    queryset = Dish.objects.all()
-    serializer_class = DishSerializer
-
-    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
-    def highlight(self, request, *args, **kwargs):
-        dish = self.get_object()
-        return Response(dish.highlighted)
-
-    def perform_create(self, serializer):
-        serializer.save()
-
-
-class MenuViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-
-    Additionally we also provide an extra `highlight` action.
-    """
-    queryset = Menu.objects.all()
+class MenuViewSet(ModelViewSet):
+    model = Menu
+    queryset = Menu.objects.all().annotate(
+        votes_for=Count('votes', filter=Q(votes__action=Vote.VOTE_FOR)),
+        votes_against=Count('votes', filter=Q(votes__action=Vote.VOTE_AGAINST))
+    )
     serializer_class = MenuSerializer
+    permission_classes = [IsRestaurantOrReadyOnly]
 
-    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
-    def highlight(self, request, *args, **kwargs):
-        menu = self.get_object()
-        return Response(menu.highlighted)
+    filterset_class = MenuFilterSet
 
     def perform_create(self, serializer):
-        serializer.save()
+        restaurant = self.request.user.restaurant
+        serializer.save(restaurant=restaurant)
+
+    @action(detail=False, methods=['GET'])
+    def result(self, request, *args, **kwargs):
+        qs = self.filter_queryset(self.get_queryset())
+        menu = qs.order_by('-votes_for').first()
+        if menu is None:
+            raise NotFound
+        serializer = self.get_serializer(instance=menu)
+        return Response(serializer.data)
 
 
-@api_view(['GET'])
-def api_root(request, format=None):
-    return Response({
-        'users': reverse('user-list', request=request, format=format)
-    })
+class UserViewSet(ModelViewSet):
+    model = User
+    queryset = User.objects.all().filter(restaurant__isnull=True)
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+
+
+class VoteViewSet(NestedViewSetMixin, ModelViewSet):
+    model = Vote
+    queryset = Vote.objects.all()
+    serializer_class = VoteSerializer
+
+    # We assume that any user is that created
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        menu = Menu.objects.get(id=self.kwargs['parent_lookup_menu'])
+        serializer.save(user=self.request.user, menu=menu)

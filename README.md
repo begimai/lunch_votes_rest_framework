@@ -1,6 +1,6 @@
-# Project Title
+# Restaurant chooser
 
-One Paragraph of project description goes here
+Server API that will allow employees to select restaurant for lunch.
 
 ## Getting Started
 
@@ -11,78 +11,64 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 ```
-Give examples
+pip3 install djangorestframework
+pip3 install drf-extensions
+pip3 install django-filter
+pip3 install django
+pip3 install drf-yasg
+pip3 install packaging  # Requirement from drf-yasg
 ```
 
 ### Installing
 
 A step by step series of examples that tell you how to get a development env running
 
-Say what the step will be
 
 ```
-Give the example
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver 8000
 ```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Running the tests
 
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
 ```
-Give an example
+python manage.py test
 ```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
-
-## Authors
-
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+# Corner Case django test app
+Server API that will allow employees to select restaurant to go to.
 
+Employee/staff user creates restaurant and gets token for for restaurant
+
+`POST /api/restaurant/ {"title": "Restaurant title}`
+
+Provide to the restaurant ACCESS_TOKEN from response.
+Upload menu from restaurant:
+
+`POST /api/menu/ {"title": "title", "dishes": "actual repertuar"}`
+
+We are assuming that user in the system is actual employee, unless it has restaurant assigned to him.
+
+`GET /api/menu/?date=2019-08-01`
+
+Will provide the menus for that day
+
+Each employee can vote for the menu
+
+`POST /api/menu/:id/votes/ {"action": 0}`
+
+to vote for the menu
+
+`POST /api/menu/:id/votes/ {"action": 1}`
+
+to vote against menu
+
+`GET /api/menu/result/?date=2019-08-01`
+
+Get winning menu for specified day

@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import F
@@ -31,7 +33,7 @@ class Restaurant(models.Model):
 class Menu(models.Model):
     restaurant = models.ForeignKey('restaurants.Restaurant', related_name='menu', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    date = models.DateField(auto_now=True)
+    date = models.DateField(default=datetime.date.today)
     approved = models.BooleanField(default=False)
     dishes = models.TextField()
 

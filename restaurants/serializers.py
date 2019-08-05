@@ -1,7 +1,9 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from django.contrib.auth.models import User
 
 from restaurants.models import Restaurant, Menu, Vote
+
+User = get_user_model()
 
 
 class RestaurantSerializer(serializers.ModelSerializer):

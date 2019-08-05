@@ -1,12 +1,9 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework_extensions.routers import ExtendedDefaultRouter as DefaultRouter
 
-from restaurants import views
-
-# Create a router and register our viewsets with it.
-from restaurants.views import UserViewSet, MenuViewSet, RestaurantViewSet, VoteViewSet
+from restaurants.views import RestaurantViewSet, MenuViewSet, VoteViewSet, UserViewSet
 
 router = DefaultRouter()
+
 router.register('users', UserViewSet, basename='users')
 
 restaurant_router = router.register('restaurants', RestaurantViewSet, basename='restaurants')
